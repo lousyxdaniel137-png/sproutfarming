@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SproutFarm: Water-Efficient Gardening Platform</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Load Chart.js for the Garden Planner -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- CRITICAL: The global Firebase CDN scripts are removed, as we now use module imports in the body script below. -->
+    
+    <style>
+        /* Custom styles for professional appearance and clean scrolling */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .scrollable-chat {
+            height: 400px;
+            max-height: 70vh; /* Responsive height */
+            overflow-y: auto;
+        }
+        /* Style for Authentication Form */
+        #auth-container {
+            background: linear-gradient(135deg, #a7f3d0 0%, #34d399 100%);
+        }
+        .auth-card {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 420px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Loading Screen (Displayed until Auth State is known) -->
+    <div id="loading-screen" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-500 mx-auto"></div>
+            <p class="mt-4 text-lg font-semibold text-gray-700">Initializing platform resources...</p>
+        </div>
+    </div>
+    
+    <!-- AUTHENTICATION VIEW -->
+    <div id="auth-container" class="min-h-screen flex items-center justify-center p-4" style="display: none;">
+        <div class="auth-card">
+            <div class="text-center mb-6">
+                <i data-lucide="leaf" class="w-10 h-10 text-green-700 mx-auto mb-2"></i>
+                <h1 class="text-3xl font-bold text-gray-800">Welcome to SproutFarm</h1>
+                <p class="text-gray-500 text-sm">Sign in or create an account to start tracking your garden.</p>
+            </div>
+
+            <form id="auth-form" class="space-y-4">
+                <input type="email" id="auth-email" placeholder="Email Address" required class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition">
+                <input type="password" id="auth-password" placeholder="Password (min 6 characters)" required class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition">
+                
+                <button type="submit" id="auth-submit-button" class="w-full p-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition disabled:bg-gray-400">
+                    Sign Up
+                </button>
+            </form>
+
+            <p id="auth-message" class="mt-4 text-center p-2 rounded-lg text-sm hidden"></p>
+            
+            <div class="mt-6 text-center">
+                <button id="toggle-auth-mode" class="text-sm text-green-600 hover:text-green-800 transition">
+                    Already have an account? Log In
+                </button>
+            </div>
+        </div>
+    </div>
+   
+
+    <!-- MAIN APPLICATION VIEW -->
+    <div id="app-container" class="min-h-screen" style="display: none;">
+
+        <!-- Header and User Auth Display -->
+        <header class="sticky top-0 z-10 bg-white shadow-lg p-4 flex justify-between items-center border-b border-green-200">
+            <div class="flex items-center">
+                <i data-lucide="leaf" class="w-8 h-8 text-green-700 mr-2"></i>
+                <h1 class="text-3xl font-extrabold text-green-800 hidden sm:block">SproutFarm Platform</h1>
+            </div>
+            <div id="auth-gate" class="flex items-center space-x-4">
+                <div id="user-info" class="flex items-center space-x-2">
+                    <i data-lucide="user-check" class="w-5 h-5 text-green-500"></i>
+                    <!-- IMPORTANT: Display the user identifier -->
+                    <span class="text-sm text-white font-mono p-1 bg-green-800 rounded-lg" id="user-id-display"></span>
+                </div>
+                <button id="logout-button" class="flex items-center bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-xl text-sm font-medium shadow-md transition">
+                    <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> Logout
+                </button>
+            </div>
+        </header>
+        
+        <div class="flex">
+            <!-- Sidebar Navigation -->
+            <aside class="hidden md:block w-72 p-4 pt-8 h-screen sticky top-0">
+                <div class="flex flex-col space-y-2 p-4 bg-green-900 shadow-2xl rounded-3xl min-h-[90vh]">
+                    <div class="flex items-center p-4 mb-4 border-b border-green-700">
+                        <h1 class="text-2xl font-bold text-white">Menu</h1>
+                    </div>
+                    <!-- Navigation Items -->
+                    <button data-view="Home" class="nav-item flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 text-green-200 hover:bg-green-600/50 hover:text-white">
+                        <i data-lucide="home" class="w-5 h-5 mr-3"></i><span class="font-medium">Platform Overview</span>
+                    </button>
+                    <button data-view="Dashboard" class="nav-item flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 text-green-200 hover:bg-green-600/50 hover:text-white">
+                        <i data-lucide="zap" class="w-5 h-5 mr-3"></i><span class="font-medium">Farm Dashboard</span>
+                    </button>
+                    <button data-view="GardenPlanner" class="nav-item flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 text-green-200 hover:bg-green-600/50 hover:text-white">
+                        <i data-lucide="calculator" class="w-5 h-5 mr-3"></i><span class="font-medium">Garden Planner</span>
+                    </button>
+                    <button data-view="AI" class="nav-item flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 text-green-200 hover:bg-green-600/50 hover:text-white">
+                        <i data-lucide="bot" class="w-5 h-5 mr-3"></i><span class="font-medium">AI Farm Assistant</span>
+                    </button>
+                    <button data-view="Content" class="nav-item flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 text-green-200 hover:bg-green-600/50 hover:text-white">
+                        <i data-lucide="lightbulb" class="w-5 h-5 mr-3"></i><span class="font-medium">Educational Content</span>
+                    </button>
+                    <button data-view="Calculator" class="nav-item flex items-center w-full px-4 py-3 rounded-x1 transition-all duration-200 text-green-200 hover:bg-green-600/50 hover:text-white">
+                        <i data-lucide="calculator" class="w-5 h-5 mr-3"></i><span class="font-medium">calculator</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="flex-grow p-4 md:p-8 pt-8">
+                <div id="content-container">
+                    <!-- Views will be rendered here -->
+                </div>
+            </main>
+        </div>
+
+          <nav class="navbar">
+  <h1>🌿 Sprout Pioneers</h1>
+  
+    <a href="index.html">Home</a>
+    <a href="Food Gardening  Home.html">Garden</a>
+    <a href="Calculator.html">calculator</a>
+    <a href="Fertilizer.html">Fertilizer</a>
+    <a href="Types of soil.html">Types of Soil</a>
+    <a href="Watering.html">Watering</a>
+    <a href="Seasons.html">season</a>
+    <a href="uploads.html">upload</a>
+</nav>
+
+
+        <footer class="text-center p-4 text-gray-500 text-sm border-t mt-8">
+            &copy; 2025 SproutFarm Educational Platform. Powered by Firebase and Gemini.
+        </footer>
+    </div>
+
+    <!-- Main JavaScript Logic using MODULE IMPORTS -->
+    <script type="module">
+        // --- Firebase Modular Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, doc, deleteDoc, onSnapshot, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Configuration & API Keys ---
+        
+        // Hardcoded Firebase Config
+        const firebaseConfig = {
+          apiKey: "AIzaSyAGTsNHiQ0X4WI6HJeXv1xN42qKM9L5KqA",
+          authDomain: "studio-3089544644-1ca1b.firebaseapp.com",
+          projectId: "studio-3089544644-1ca1b",
+          storageBucket: "studio-3089544644-1ca1b.firebasestorage.app",
+          messagingSenderId: "870588581437",
+          appId: "1:870588581437:web:c311c23b665d67eb744c54"
+        }; 
+        
+        // Gemini API Key (leave empty)
+        const apiKey = ""; 
+        
+        // Global instances
+        let app, db, auth;
+        let userId = null;
+        let isLoginMode = false; // Tracks if the user is logging in or signing up
+        let chart; // Global variable for Chart.js instance in Garden Planner
+        
+        // Data Path structure constants
+        const recordsCollectionName = 'farm_records'; 
+        const appId = firebaseConfig.projectId; // Use projectId as the application ID for data pathing
+
+        // --- Utility Functions (fetchWithRetry and handleAIQuery are unchanged) ---
+
+        /**
+         * Exponential backoff for API retries.
+         */
+        const fetchWithRetry = async (url, options, retries = 3) => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response;
+                } catch (error) {
+                    if (i < retries - 1) {
+                        const delay = Math.pow(2, i) * 1000;
+                        console.warn(`Attempt ${i + 1} failed. Retrying in ${delay / 1000}s...`, error);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw new Error("API request failed after multiple retries.");
+                    }
+                }
+            }
+        };
+
+        /**
+         * Handles the Gemini API call for chat and analysis.
+         */
+        const handleAIQuery = async (userPrompt, systemInstructionOverride) => {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            
+            const specializedSystemPrompt = `
+                You are a friendly and expert agricultural AI assistant focused on water conservation and water-efficient farming.
+                Provide concise, actionable advice suitable for a modern farmer or student. Your knowledge base covers:
+                1. Water-Saving Methods: Drip Irrigation, Hydroponics, Aeroponics, Rainwater Harvesting.
+                2. Drought-Resistant Crops: Drought-Tolerant Maize, Sorghum, Hardy Wheat, Legumes.
+            `;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: systemInstructionOverride || specializedSystemPrompt }]
+                },
+            };
+
+            try {
+                // Check if API key is present for the call
+                if (!apiKey && typeof __initial_auth_token === 'undefined') {
+                    return "AI service requires an API key for external use or the Canvas environment.";
+                }
+
+                const response = await fetchWithRetry(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't process that request right now. Try rephrasing.";
+                
+                return text;
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                return "Connection error: Could not reach the AI service. Please check your network.";
+            }
+        };
+
+        // --- Initialization and Auth (Refactored for Modular SDK) ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set a timeout to ensure the loading screen is hidden even if initApp freezes/fails.
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen.style.display !== 'none') {
+                     console.error("Timeout reached. Forcing loading screen to hide.");
+                     loadingScreen.style.display = 'none';
+                }
+            }, 8000); 
+            
+            initApp();
+        });
+
+
+        const initApp = async () => {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.querySelector('p').textContent = "Initializing Firebase and preparing authentication...";
+
+            try {
+                // 1. Initialize Firebase using modular functions
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app); // Use getAuth
+                db = getFirestore(app); // Use getFirestore
+                setLogLevel('debug'); // setLogLevel is a standalone function
+
+                // 2. Setup Listener
+                setupAuthListener();
+
+            } catch (error) {
+                console.error("Critical Initialization Error:", error);
+                loadingScreen.style.display = 'block';
+                loadingScreen.innerHTML = `<p class="text-red-600 font-bold p-6">FATAL ERROR: Could not initialize application: ${error.message}. Please check your configuration and network.</p>`;
+            }
+        };
+
+
+        const setupAuthListener = () => {
+            const loadingScreen = document.getElementById('loading-screen');
+            const authContainer = document.getElementById('auth-container');
+            const appContainer = document.getElementById('app-container');
+
+            // Use the modular onAuthStateChanged function
+            onAuthStateChanged(auth, (user) => {
+                loadingScreen.style.display = 'none'; // Hide loading screen once auth status is known
+
+                if (user) { 
+                    // USER LOGGED IN
+                    userId = user.uid;
+                    document.getElementById('user-id-display').textContent = user.email || user.uid;
+                    
+                    authContainer.style.display = 'none';
+                    appContainer.style.display = 'block';
+
+                    setupAppListeners();
+                    setupFirestoreListener(); 
+                    
+                    // CRITICAL CHANGE: Set GardenPlanner as the default view and highlight the button
+                    renderView('GardenPlanner'); 
+                    highlightActiveNav('GardenPlanner');
+
+                    lucide.createIcons(); 
+                } else {
+                    // NO USER LOGGED IN
+                    userId = null;
+                    document.getElementById('user-id-display').textContent = 'Guest';
+                    authContainer.style.display = 'flex';
+                    appContainer.style.display = 'none';
+                }
+            });
+            
+            // Logout functionality using the modular signOut function
+            document.getElementById('logout-button').addEventListener('click', async () => {
+                try {
+                    await signOut(auth); 
+                } catch (error) {
+                    console.error("Sign out failed:", error);
+                }
+            });
+            setupAuthFormListeners(); 
+        };
+
+        const setupAuthFormListeners = () => {
+            const form = document.getElementById('auth-form');
+            const toggleButton = document.getElementById('toggle-auth-mode');
+            const submitButton = document.getElementById('auth-submit-button');
+            const messageElement = document.getElementById('auth-message');
+
+            const updateFormMode = () => {
+                isLoginMode = !isLoginMode;
+                submitButton.textContent = isLoginMode ? 'Log In' : 'Sign Up';
+                toggleButton.textContent = isLoginMode ? 'Need an account? Sign Up' : 'Already have an account? Log In';
+                document.querySelector('.auth-card h1').textContent = isLoginMode ? 'Sign In' : 'Create Account';
+                messageElement.classList.add('hidden');
+            };
+
+            const displayMessage = (text, isError = false) => {
+                messageElement.textContent = text;
+                messageElement.classList.remove('hidden', 'bg-red-100', 'bg-green-100', 'text-red-700', 'text-green-700');
+                messageElement.classList.add(isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700');
+            };
+
+            toggleButton.addEventListener('click', updateFormMode);
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('auth-email').value;
+                const password = document.getElementById('auth-password').value;
+
+                submitButton.disabled = true;
+                submitButton.textContent = isLoginMode ? 'Logging In...' : 'Signing In...';
+                messageElement.classList.add('hidden');
+
+                try {
+                    if (isLoginMode) {
+                        // Use the modular signInWithEmailAndPassword function
+                        await signInWithEmailAndPassword(auth, email, password);
+                        displayMessage('Login successful! Redirecting...', false);
+                    } else {
+                        // Use the modular createUserWithEmailAndPassword function
+                        await createUserWithEmailAndPassword(auth, email, password);
+                        displayMessage('Account created successfully! Logging in...', false);
+                    }
+                    // onAuthStateChanged listener handles the rest
+                } catch (error) {
+                    let errorMessage = error.code ? error.code.replace('auth/', '').replaceAll('-', ' ').toUpperCase() : 'An unknown error occurred.';
+                    displayMessage(`ERROR: ${errorMessage}`, true);
+                    console.error("Auth Error:", error);
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = isLoginMode ? 'Log In' : 'Sign Up';
+                }
+            });
+        };
+        
+        // --- Navigation and Routing ---
+        let farmRecords = []; // Global store for records
+        
+        /** Highlights the active navigation item in the sidebar. */
+        const highlightActiveNav = (activeView) => {
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                const isActive = btn.getAttribute('data-view') === activeView;
+                
+                if (isActive) {
+                    btn.classList.add('bg-green-700', 'text-white', 'shadow-xl', 'shadow-green-900/50');
+                    btn.classList.remove('text-green-200', 'hover:bg-green-600/50', 'hover:text-white');
+                } else {
+                    btn.classList.remove('bg-green-700', 'text-white', 'shadow-xl', 'shadow-green-900/50');
+                    btn.classList.add('text-green-200', 'hover:bg-green-600/50', 'hover:text-white');
+                }
+            });
+        };
+
+        const setupAppListeners = () => {
+            document.querySelectorAll('.nav-item').forEach(button => {
+                button.addEventListener('click', () => {
+                    const view = button.getAttribute('data-view');
+                    renderView(view);
+                    highlightActiveNav(view); // Use the new function
+                });
+            });
+        };
+
+        const renderView = (view) => {
+            const container = document.getElementById('content-container');
+            container.innerHTML = ''; // Clear previous content
+
+            // Destroy existing chart if moving away from GardenPlanner
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+
+            switch (view) {
+                case 'Dashboard':
+                    container.innerHTML = DashboardView();
+                    setupDashboardListeners();
+                    break;
+                case 'GardenPlanner':
+                    container.innerHTML = GardenPlannerView();
+                    setupGardenPlannerListeners();
+                    break;
+                case 'AI':
+                    container.innerHTML = AIPlatformView();
+                    setupAIChatListeners();
+                    break;
+                case 'Content':
+                    container.innerHTML = EducationalContent();
+                    break;
+                case 'Home':
+                default:
+                    container.innerHTML = HomeView();
+                    container.querySelector('#home-content-container').innerHTML = EducationalContent();
+                    break;
+            }
+            // Use the global lucide object for creating icons
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons(); 
+            }
+        };
+
+        // --- Data Handling (Refactored for Modular SDK) ---
+
+        const setupFirestoreListener = () => {
+            const currentUserId = auth.currentUser?.uid || userId; 
+            
+            if (!db || !currentUserId || !appId) {
+                 console.warn("Firestore listener skipped: DB, App ID, or User ID not available yet.");
+                 return;
+            }
+            
+            // CRITICAL: Use the modular collection function to create a CollectionReference
+            // Path: /artifacts/{appId}/users/{userId}/farm_records
+            const recordsRef = collection(db, 'artifacts', appId, 'users', currentUserId, recordsCollectionName);
+            
+            // Use the modular onSnapshot function
+            onSnapshot(recordsRef, (snapshot) => {
+                let docs = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                // Client-side sort: Descending order by timestamp (avoiding Firestore orderBy)
+                farmRecords = docs.sort((a, b) => {
+                    // Firestore Timestamps need conversion
+                    const timeA = a.timestamp?.toDate().getTime() || 0;
+                    const timeB = b.timestamp?.toDate().getTime() || 0;
+                    return timeB - timeA; // Descending (Newest first)
+                });
+                
+                // Re-render dashboard if visible to reflect updates
+                if (document.querySelector('#dashboard-view')) {
+                    renderView('Dashboard');
+                }
+            }, (error) => {
+                console.error("Firestore listen failed. Check security rules and user ID match:", error);
+            });
+        };
+        
+        // --- View Templates (Home, Content, Dashboard, AI, Garden Planner) ---
+
+        const HomeView = () => `
+            <div class="space-y-8">
+                <h2 class="text-4xl font-extrabold text-green-700">Welcome to SproutFarm</h2>
+                <p class="text-lg text-gray-600 max-w-3xl">
+                    The integrated platform for modern water-efficient farming. Use our tools to track your garden's performance,
+                    get real-time advice from our AI assistant, and learn about sustainable growing methods.
+                </p>
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="p-6 rounded-2xl shadow-xl bg-blue-100 border border-gray-200 flex flex-col items-start">
+                        <div class="p-3 rounded-full bg-white shadow-md mb-3 text-green-700"><i data-lucide="bot" class="w-6 h-6"></i></div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-1">AI Assistant</h3>
+                        <p class="text-lg text-gray-600 font-medium">Intelligent Guidance</p>
+                    </div>
+                    <div class="p-6 rounded-2xl shadow-xl bg-yellow-100 border border-gray-200 flex flex-col items-start">
+                        <div class="p-3 rounded-full bg-white shadow-md mb-3 text-green-700"><i data-lucide="upload" class="w-6 h-6"></i></div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-1">Data Upload</h3>
+                        <p class="text-lg text-gray-600 font-medium">${farmRecords.length} Records Logged</p>
+                    </div>
+                    <div class="p-6 rounded-2xl shadow-xl bg-green-100 border border-gray-200 flex flex-col items-start">
+                        <div class="p-3 rounded-full bg-white shadow-md mb-3 text-green-700"><i data-lucide="heart" class="w-6 h-6"></i></div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-1">Sustainability</h3>
+                        <p class="text-lg text-gray-600 font-medium">Water Focus</p>
+                    </div>
+                </div>
+                
+                <div id="home-content-container"></div>
+            </div>
+        `;
+
+        const EducationalContent = () => `
+            <div class="space-y-6">
+                <h2 class="text-4xl font-extrabold text-green-700 border-b pb-2">Water Conservation Knowledge Base</h2>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-3 text-green-600">
+                            <i data-lucide="zap" class="w-6 h-6 mr-3"></i>
+                            <h3 class="text-xl font-semibold text-gray-800">Drip Irrigation</h3>
+                        </div>
+                        <p class="text-gray-600">Delivers water directly to the root zone, maximizing efficiency and saving up to 80% of water compared to traditional methods.</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-3 text-green-600">
+                            <i data-lucide="globe" class="w-6 h-6 mr-3"></i>
+                            <h3 class="text-xl font-semibold text-gray-800">Hydroponics</h3>
+                        </div>
+                        <p class="text-gray-600">Growing crops in a water-based nutrient solution without soil. Systems can recirculate water, leading to 90-95% water savings.</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-3 text-green-600">
+                            <i data-lucide="leaf" class="w-6 h-6 mr-3"></i>
+                            <h3 class="text-xl font-semibold text-gray-800">Drought-Tolerant Maize</h3>
+                        </div>
+                        <p class="text-gray-600">Resilient maize varieties that can withstand up to 30-40% less rainfall while maintaining viable yields.</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-3 text-green-600">
+                            <i data-lucide="heart" class="w-6 h-6 mr-3"></i>
+                            <h3 class="text-xl font-semibold text-gray-800">Sorghum and Legumes</h3>
+                        </div>
+                        <p class="text-gray-600">Sorghum shows exceptional drought resistance; legumes improve soil health and fix nitrogen while conserving water.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const DashboardView = () => `
+            <div id="dashboard-view" class="space-y-8">
+                <h2 class="text-4xl font-extrabold text-green-700">Farm Data Dashboard</h2>
+                ${UploadForm()}
+                ${FarmAnalysis()}
+                ${RecordList()}
+            </div>
+        `;
+
+        const UploadForm = () => `
+            <div id="upload-form-card" class="p-8 bg-white rounded-2xl shadow-xl border-t-4 border-green-500">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center"><i data-lucide="upload" class="w-5 h-5 mr-2 text-green-600"></i> Upload New Farm Data</h3>
+                <form id="farm-data-form" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Crop Name</label>
+                        <input type="text" id="cropName" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Water Used (L/Week)</label>
+                        <input type="number" id="waterUsed" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition" required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Farming Method</label>
+                        <select id="method" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition" required>
+                            <option value="Drip">Drip Irrigation</option>
+                            <option value="Hydro">Hydroponics</option>
+                            <option value="Traditional">Traditional Farming</option>
+                            <option value="Rainwater">Rainwater Harvesting</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col">
+                        <label for="file-upload" class="block text-sm font-medium text-gray-700 mb-1">Image Upload (Farm Photo)</label>
+                        <input type="file" id="file-upload" class="hidden" accept="image/*">
+                        <label for="file-upload" id="file-upload-label" class="flex items-center justify-center p-3 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-xl cursor-pointer shadow-md transition">
+                            Choose Image <i data-lucide="leaf" class="w-4 h-4 ml-2"></i>
+                        </label>
+                        <p id="file-message" class="text-xs text-gray-500 mt-1">Saves a placeholder image URL for now.</p>
+                    </div>
+                    
+                    <button type="submit" id="submit-record-button" class="lg:col-span-4 mt-4 p-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition disabled:bg-gray-400">
+                        Submit Farm Record
+                    </button>
+                    <p id="form-message" class="lg:col-span-4 text-center p-2 rounded-lg hidden"></p>
+                </form>
+            </div>
+        `;
+        
+        const FarmAnalysis = () => `
+            <div class="p-8 bg-white rounded-2xl shadow-xl border-t-4 border-purple-500">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><i data-lucide="brain" class="w-5 h-5 mr-2 text-purple-600"></i> AI Farm Analyst</h3>
+                
+                ${farmRecords.length === 0 ? 
+                    `<p class="text-gray-500">Log some records above to run the AI analysis!</p>` : 
+                    `
+                        <button id="analyze-records-button" class="flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg transition disabled:bg-gray-400 mb-4">
+                            ✨ Analyze My Records
+                        </button>
+                        <div id="analysis-output" class="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg hidden whitespace-pre-wrap">
+                            <h4 class="font-bold text-lg text-purple-800 mb-2 border-b border-purple-300 pb-1">AI Analysis Summary:</h4>
+                            <p id="analysis-text">The AI will provide tailored recommendations here.</p>
+                        </div>
+                    `
+                }
+            </div>
+        `;
+
+        const RecordList = () => `
+            <div class="space-y-4">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Your Farm Records (${farmRecords.length})</h3>
+                <div id="record-list-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${farmRecords.length === 0 ? 
+                        `<p class="text-center text-lg text-gray-500 p-8 bg-white rounded-xl shadow-lg lg:col-span-3">No farm records logged yet.</p>` :
+                        farmRecords.map(record => `
+                            <div id="record-${record.id}" class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex flex-col justify-between">
+                                <div class="flex justify-between items-start mb-4">
+                                    <h4 class="text-xl font-bold text-green-700">${record.cropName}</h4>
+                                    <button data-record-id="${record.id}" class="delete-button p-2 rounded-full transition text-red-500 hover:text-red-700">
+                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                                <img src="${record.imageUrl}" alt="Farm Photo Placeholder" class="w-full h-32 object-cover rounded-xl mb-4 shadow-inner" 
+                                    onerror="this.onerror=null; this.src='https://placehold.co/150x100/F0F0F0/000000?text=No+Image';"
+                                />
+                                <p class="text-gray-700"><span class="font-semibold">Method:</span> ${record.method}</p>
+                                <p class="text-gray-700"><span class="font-semibold">Water Used:</span> ${record.waterUsed} L/Week</p>
+                                <p class="xs text-gray-500 mt-2">Logged: ${record.timestamp ? new Date(record.timestamp.toDate()).toLocaleString() : 'Processing...'}</p>
+                            </div>
+                        `).join('')
+                    }
+                </div>
+            </div>
+        `;
+
+        const AIPlatformView = () => `
+            <div id="ai-chat-view" class="flex flex-col h-[75vh] bg-white rounded-2xl shadow-xl border-t-4 border-blue-500 p-6">
+                <h2 class="text-4xl font-extrabold text-blue-700 mb-6 flex items-center"><i data-lucide="bot" class="w-6 h-6 mr-3"></i> AI Farm Assistant</h2>
+                
+                <!-- Chat Log -->
+                <div id="chat-log" class="scrollable-chat flex-grow overflow-y-auto space-y-4 p-4 mb-4 border border-gray-200 rounded-xl bg-gray-50">
+                    <!-- Initial AI message -->
+                    <div class="flex justify-start mb-4">
+                        <div class="max-w-3/4 p-4 rounded-xl shadow-lg bg-green-100 text-gray-800 border border-green-300">
+                            <p>Hello! I am your SproutFarm AI Assistant, highly specialized in water-efficient farming. Ask me about **Drip Irrigation, Hydroponics,** or your latest farm data!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="flex space-x-3">
+                    <input
+                        type="text"
+                        placeholder="Ask about crops, water conservation, or farming methods..."
+                        id="chat-input"
+                        class="flex-grow p-4 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition shadow-md"
+                    />
+                    <button
+                        id="send-chat-button"
+                        class="p-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition disabled:bg-gray-400"
+                    >
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const GardenPlannerView = () => `
+            <div id="garden-planner-view" class="space-y-8">
+                <h2 class="text-4xl font-extrabold text-green-700">Garden Planner & Calculator</h2>
+                
+                <div class="p-8 bg-white rounded-2xl shadow-xl border-t-4 border-yellow-500">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center border-b border-gray-200 pb-2">
+                        <i data-lucide="layout-grid" class="w-5 h-5 mr-2 text-yellow-600"></i> Calculate Your Garden Needs
+                    </h3>
+                    <p class="text-gray-600 mb-6">Enter your garden parameters below to estimate total yield, fertilizer, water usage, and setup costs.</p>
+
+                    <div id="calculator-form" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Garden Area (m²):</label>
+                            <input type="number" id="area" placeholder="e.g. 20" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Plant Spacing (m):</label>
+                            <input type="number" id="spacing" placeholder="e.g. 0.5" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Fertilizer per Plant (kg):</label>
+                            <input type="number" id="fertilizer" placeholder="e.g. 0.2" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Yield per Plant (kg):</label>
+                            <input type="number" id="yieldPerPlant" placeholder="e.g. 1.5" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Water per Plant (L):</label>
+                            <input type="number" id="waterPerPlant" placeholder="e.g. 5" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cost per Plant (R):</label>
+                            <input type="number" id="costPerPlant" placeholder="e.g. 10" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 transition">
+                        </div>
+                    </div>
+
+                    <button id="calculate-button" class="mt-8 w-full p-4 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-xl shadow-lg transition disabled:bg-gray-400">
+                        Calculate Results
+                    </button>
+
+                    <div class="results mt-8 font-medium bg-yellow-50 p-6 rounded-xl border border-yellow-200" id="results">
+                        Enter values and click 'Calculate' to see your estimates.
+                    </div>
+
+                    <canvas id="yieldChart" class="mt-8 w-full"></canvas>
+                </div>
+            </div>
+        `;
+
+        // --- Dashboard Listener Setup (Refactored for Modular SDK) ---
+
+        let imageUrlPlaceholder = 'https://placehold.co/150x100/A0DC91/FFFFFF?text=Photo';
+        let deletingId = null;
+
+        const setupDashboardListeners = () => {
+            const form = document.getElementById('farm-data-form');
+            const fileInput = document.getElementById('file-upload');
+            const fileMessage = document.getElementById('file-message');
+            const formMessage = document.getElementById('form-message');
+            const submitButton = document.getElementById('submit-record-button');
+            const listContainer = document.getElementById('record-list-container');
+            const analyzeButton = document.getElementById('analyze-records-button');
+            
+            // 1. Upload Form Handler
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const currentUserId = auth.currentUser?.uid || userId; 
+
+                if (!db || !currentUserId || !appId) {
+                    console.error("Cannot submit: DB, App ID, or User ID not available. Please log in.");
+                    return;
+                }
+
+                const cropName = document.getElementById('cropName').value.trim();
+                const waterUsed = document.getElementById('waterUsed').value;
+                const method = document.getElementById('method').value;
+
+                submitButton.disabled = true;
+                submitButton.textContent = 'Saving...';
+                formMessage.classList.add('hidden');
+
+                try {
+                    // CRITICAL: Use modular collection and addDoc functions
+                    // Create a CollectionReference
+                    const recordsRef = collection(db, 'artifacts', appId, 'users', currentUserId, recordsCollectionName);
+                    
+                    await addDoc(recordsRef, {
+                        userId: currentUserId,
+                        cropName,
+                        method,
+                        waterUsed: parseFloat(waterUsed),
+                        imageUrl: imageUrlPlaceholder,
+                        timestamp: serverTimestamp(), // Use modular serverTimestamp
+                    });
+                    
+                    formMessage.textContent = 'Record successfully uploaded!';
+                    formMessage.classList.remove('hidden', 'bg-red-100', 'text-red-700');
+                    formMessage.classList.add('bg-green-100', 'text-green-700');
+
+                    form.reset();
+                    imageUrlPlaceholder = `https://placehold.co/150x100/${Math.floor(Math.random()*16777215).toString(16)}/FFFFFF?text=Photo`; 
+                    fileMessage.textContent = 'Saves a placeholder image URL for now.';
+
+                } catch (error) {
+                    console.error("Error adding document: ", error);
+                    formMessage.textContent = 'Error submitting data. See console.';
+                    formMessage.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+                    formMessage.classList.add('bg-red-100', 'text-red-700');
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Farm Record';
+                }
+            });
+
+            // 2. Mock File Change Handler
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    fileMessage.textContent = `Mock upload: ${file.name} ready. Storing placeholder URL.`;
+                    imageUrlPlaceholder = `https://placehold.co/150x100/6A7B6B/FFFFFF?text=${file.name.slice(0, 10)}...`; 
+                }
+            });
+
+            // 3. Delete Button Handler (Event delegation)
+            listContainer.addEventListener('click', (e) => {
+                const button = e.target.closest('.delete-button');
+                if (!button) return;
+
+                const id = button.getAttribute('data-record-id');
+                const icon = button.querySelector('i[data-lucide]');
+                const recordDiv = document.getElementById(`record-${id}`);
+
+                if (deletingId === id) {
+                    // Second click, confirm delete
+                    const currentUserId = auth.currentUser?.uid || userId;
+                    
+                    // CRITICAL: Use modular doc and deleteDoc functions
+                    const docRef = doc(db, 'artifacts', appId, 'users', currentUserId, recordsCollectionName, id);
+                    deleteDoc(docRef);
+                    
+                    deletingId = null;
+                } else {
+                    // First click, ask for confirmation
+                    deletingId = id;
+                    
+                    button.classList.remove('text-red-500', 'hover:text-red-700');
+                    button.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
+                    recordDiv.insertAdjacentHTML('afterbegin', `<p id="confirm-msg-${id}" class="text-sm text-red-500 mb-2 font-semibold">Click again to confirm delete!</p>`);
+                    icon.setAttribute('data-lucide', 'check-circle');
+
+                    setTimeout(() => {
+                        if (deletingId === id) {
+                            button.classList.remove('bg-red-500', 'text-white', 'hover:bg-red-600');
+                            button.classList.add('text-red-500', 'hover:text-red-700');
+                            icon.setAttribute('data-lucide', 'trash-2');
+                            document.getElementById(`confirm-msg-${id}`)?.remove();
+                            deletingId = null;
+                        }
+                    }, 3000); 
+                }
+                // Use the global lucide object for creating icons
+                if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                    lucide.createIcons(); 
+                }
+            });
+
+            // 4. AI Analysis Button Handler
+            if (analyzeButton) {
+                analyzeButton.addEventListener('click', async () => {
+                    analyzeButton.disabled = true;
+                    analyzeButton.textContent = 'Analyzing Data...';
+                    const analysisTextElement = document.getElementById('analysis-text');
+                    const outputContainer = document.getElementById('analysis-output');
+                    outputContainer.classList.remove('hidden');
+                    analysisTextElement.innerHTML = '<span class="animate-pulse text-purple-600">The AI is reviewing your records and generating recommendations...</span>';
+                    
+                    const dataPayload = farmRecords.map(r => 
+                        `Crop: ${r.cropName}, Method: ${r.method}, Water Used: ${r.waterUsed} L/Week, Logged: ${r.timestamp ? new Date(r.timestamp.toDate()).toLocaleDateString() : 'Unknown Date'}`
+                    ).join('\n');
+        
+                    const userPrompt = `Analyze the following farm records to identify trends in water efficiency, highlight the most and least efficient methods used, and provide one actionable, data-driven recommendation for optimizing water usage for the farmer:\n\n---\n${dataPayload}`;
+                    const systemPrompt = "You are a professional agricultural data analyst. Review the provided farm records and deliver a concise summary (max 3-4 sentences) followed by a specific, actionable recommendation.";
+        
+                    try {
+                        const result = await handleAIQuery(userPrompt, systemPrompt);
+                        analysisTextElement.textContent = result;
+                    } catch (error) {
+                        analysisTextElement.textContent = "Error performing analysis. Please try again.";
+                        console.error(error);
+                    } finally {
+                        analyzeButton.disabled = false;
+                        analyzeButton.textContent = '✨ Analyze My Records';
+                    }
+                });
+            }
+            // Use the global lucide object for creating icons
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons(); 
+            }
+        };
+
+        // --- Garden Planner Listener Setup ---
+        
+        const setupGardenPlannerListeners = () => {
+            const calculateButton = document.getElementById('calculate-button');
+            calculateButton.addEventListener('click', calculateGardenPlanner);
+        };
+        
+        const calculateGardenPlanner = () => {
+            const area = parseFloat(document.getElementById("area").value);
+            const spacing = parseFloat(document.getElementById("spacing").value);
+            const fertilizer = parseFloat(document.getElementById("fertilizer").value);
+            const yieldPerPlant = parseFloat(document.getElementById("yieldPerPlant").value);
+            const waterPerPlant = parseFloat(document.getElementById("waterPerPlant").value);
+            const costPerPlant = parseFloat(document.getElementById("costPerPlant").value);
+            const resultsDiv = document.getElementById("results");
+
+            if (isNaN(area) || isNaN(spacing) || isNaN(fertilizer) || isNaN(yieldPerPlant) || isNaN(waterPerPlant) || isNaN(costPerPlant) ||
+                area <= 0 || spacing <= 0) {
+                // Use a message box instead of alert()
+                resultsDiv.innerHTML = `<div class="p-2 bg-red-100 text-red-700 rounded-lg">Please enter valid positive numbers for all inputs.</div>`;
+                if (chart) { chart.destroy(); chart = null; }
+                return;
+            }
+
+            // Calculations
+            const numPlants = area / (spacing * spacing);
+            const totalFertilizer = numPlants * fertilizer;
+            const totalYield = numPlants * yieldPerPlant;
+            const totalWaterUsage = numPlants * waterPerPlant;
+            const totalCost = numPlants * costPerPlant;
+            const totalAreaCovered = numPlants * (spacing * spacing);
+            const totalWaterRequired = totalYield * 3; // Example factor: 3 L per kg yield
+            const totalAreaUsed = totalAreaCovered;
+
+            // Display results
+            resultsDiv.innerHTML = `
+                <div class="space-y-2">
+                    <p>🌱 <strong>Number of Plants:</strong> ${numPlants.toFixed(0)}</p>
+                    <p>🧪 <strong>Total Fertilizer Needed:</strong> ${totalFertilizer.toFixed(2)} kg</p>
+                    <p class="text-xl text-green-700 font-extrabold">🥬 <strong>Estimated Total Yield:</strong> ${totalYield.toFixed(2)} kg</p>
+                    <p>💧 <strong>Total Water Usage:</strong> ${totalWaterUsage.toFixed(2)} L</p>
+                    <p>💰 <strong>Total Setup Cost:</strong> R${totalCost.toFixed(2)}</p>
+                    <p class="text-sm text-gray-600">📏 Total Area Covered: ${totalAreaCovered.toFixed(2)} m²</p>
+                    <p class="text-sm text-gray-600">🚰 Total Water Required (Est.): ${totalWaterRequired.toFixed(2)} L</p>
+                </div>
+            `;
+
+            // Chart data
+            const areaValues = [10, 20, 30, 40, 50];
+
+            const yieldValues = areaValues.map(a => (a / (spacing * spacing)) * yieldPerPlant);
+            const waterValues = areaValues.map(a => (a / (spacing * spacing)) * waterPerPlant);
+            const costValues = areaValues.map(a => (a / (spacing * spacing)) * costPerPlant);
+
+            if (chart) chart.destroy(); // remove previous chart
+
+            const ctx = document.getElementById("yieldChart").getContext("2d");
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: areaValues.map(a => a + " m²"),
+                    datasets: [
+                        {
+                            label: "Yield per Area (kg)",
+                            data: yieldValues,
+                            borderColor: "#059669", // Tailwind Green-600
+                            backgroundColor: "rgba(5, 150, 105, 0.2)",
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: "Water Usage per Area (L)",
+                            data: waterValues,
+                            borderColor: "#3b82f6", // Tailwind Blue-500
+                            backgroundColor: "rgba(59, 130, 246, 0.2)",
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: "Setup Cost per Area (R)",
+                            data: costValues,
+                            borderColor: "#ef4444", // Tailwind Red-500
+                            backgroundColor: "rgba(239, 68, 68, 0.2)",
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Garden Parameters vs Area' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // --- AI Chat View Setup ---
+
+        const setupAIChatListeners = () => {
+            const chatInput = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-chat-button');
+            const chatLog = document.getElementById('chat-log');
+
+            const appendMessage = (role, text) => {
+                const justifyClass = role === 'user' ? 'justify-end' : 'justify-start';
+                const colorClass = role === 'user' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-green-100 text-gray-800 border border-green-300';
+
+                const msgHtml = `
+                    <div class="flex ${justifyClass} mb-4">
+                        <div class="max-w-3/4 p-4 rounded-xl shadow-lg ${colorClass}">
+                            <p class="whitespace-pre-wrap">${text}</p>
+                        </div>
+                    </div>
+                `;
+                chatLog.insertAdjacentHTML('beforeend', msgHtml);
+                chatLog.scrollTop = chatLog.scrollHeight; 
+            };
+
+            const sendPrompt = async () => {
+                const userText = chatInput.value.trim();
+                if (!userText) return;
+
+                appendMessage('user', userText);
+                chatInput.value = '';
+                sendButton.disabled = true;
+
+                // Add loading indicator
+                const loadingHtml = `
+                    <div id="loading-indicator" class="flex justify-start mb-4">
+                        <div class="p-4 rounded-xl bg-green-100 text-gray-800 border border-green-300 animate-pulse">
+                            AI is thinking...
+                        </div>
+                    </div>
+                `;
+                chatLog.insertAdjacentHTML('beforeend', loadingHtml);
+                chatLog.scrollTop = chatLog.scrollHeight; 
+
+                const aiResponseText = await handleAIQuery(userText, null);
+                
+                // Remove loading indicator
+                document.getElementById('loading-indicator')?.remove();
+                
+                appendMessage('ai', aiResponseText);
+                sendButton.disabled = false;
+            };
+
+            sendButton.addEventListener('click', sendPrompt);
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !sendButton.disabled) {
+                    sendPrompt();
+                }
+            });
+        };
+    </script>
+</body>
+</html>

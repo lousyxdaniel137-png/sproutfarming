@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Garden Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(to right, #c9f7f5, #fefefe);
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      background-color: #0c7c59;
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #0c7c59;
+      border-bottom: 2px solid #0c7c59;
+      padding-bottom: 5px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      margin-top: 15px;
+      background-color: #0c7c59;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #089972;
+    }
+    .results {
+      margin-top: 20px;
+      font-weight: 500;
+      background: #eafaf4;
+      padding: 10px;
+      border-radius: 6px;
+    }
+    canvas {
+      margin-top: 25px;
+    }
+  </style>
+</head>
+<body>
+  
+
+  <header>
+    🌿 Smart Garden Calculator — HTML, CSS & JavaScript Project
+  </header>
+  <nav class="navbar">
+  <h1>🌿 Sprout Pioneers</h1>
+  
+    <a href="index.html">Home</a>
+    <a href="Food Gardening  Home.html">Garden</a>
+    <a href="Fertilizer.html">Fertilizer</a>
+    <a href="Types of soil.html">Types of Soil</a>
+    <a href="Watering.html">Watering</a>
+    <a href="Seasons.html">season</a>
+    <a href="uploads.html">upload</a>
+    <a href="Calculator.html">calculator</a>
+</nav>
+
+  <main>
+    <h2>Calculate Your Garden Yield</h2>
+    <p>Enter your garden parameters below to estimate total yield, fertilizer, water usage, and setup costs.</p>
+
+    <label>Garden Area (m²):</label>
+    <input type="number" id="area" placeholder="e.g. 20">
+
+    <label>Plant Spacing (m):</label>
+    <input type="number" id="spacing" placeholder="e.g. 0.5">
+
+    <label>Fertilizer per Plant (kg):</label>
+    <input type="number" id="fertilizer" placeholder="e.g. 0.2">
+
+    <label>Yield per Plant (kg):</label>
+    <input type="number" id="yield" placeholder="e.g. 1.5">
+
+    <label>Water per Plant (L):</label>
+    <input type="number" id="water" placeholder="e.g. 5">
+
+    <label>Cost per Plant (R):</label>
+    <input type="number" id="cost" placeholder="e.g. 10">
+
+    <button onclick="calculate()">Calculate Results</button>
+
+    <div class="results" id="results"></div>
+
+    <canvas id="yieldChart" width="400" height="200"></canvas>
+  </main>
+
+  <script>
+    let chart; // global variable for chart
+
+    function calculate() {
+      const area = parseFloat(document.getElementById("area").value);
+      const spacing = parseFloat(document.getElementById("spacing").value);
+      const fertilizer = parseFloat(document.getElementById("fertilizer").value);
+      const yieldPerPlant = parseFloat(document.getElementById("yield").value);
+      const waterPerPlant = parseFloat(document.getElementById("water").value);
+      const costPerPlant = parseFloat(document.getElementById("cost").value);
+
+      if (isNaN(area) || isNaN(spacing) || isNaN(fertilizer) || isNaN(yieldPerPlant) || isNaN(waterPerPlant) || isNaN(costPerPlant) ||
+          area <= 0 || spacing <= 0) {
+        alert("Please enter valid positive numbers for all inputs.");
+        return;
+      }
+
+      // Calculations
+      const numPlants = area / (spacing * spacing);
+      const totalFertilizer = numPlants * fertilizer;
+      const totalYield = numPlants * yieldPerPlant;
+      const totalWaterUsage = numPlants * waterPerPlant;
+      const totalCost = numPlants * costPerPlant;
+      const totalAreaCovered = numPlants * (spacing * spacing);
+      const totalWaterRequired = totalYield * 3; // Example factor: 3 L per kg yield
+      const totalAreaUsed = totalAreaCovered;
+
+      // Display results
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = `
+        🌱 <strong>Number of Plants:</strong> ${numPlants.toFixed(0)} <br>
+        🧪 <strong>Total Fertilizer Needed:</strong> ${totalFertilizer.toFixed(2)} kg <br>
+        🥬 <strong>Estimated Total Yield:</strong> ${totalYield.toFixed(2)} kg <br>
+        💧 <strong>Total Water Usage:</strong> ${totalWaterUsage.toFixed(2)} L <br>
+        💰 <strong>Total Setup Cost:</strong> R${totalCost.toFixed(2)} <br>
+        📏 <strong>Total Area Covered:</strong> ${totalAreaCovered.toFixed(2)} m² <br>
+        🚰 <strong>Total Water Required:</strong> ${totalWaterRequired.toFixed(2)} L <br>
+        📐 <strong>Total Area Used:</strong> ${totalAreaUsed.toFixed(2)} m²
+      `;
+
+      // Chart data
+      const areaValues = [10, 20, 30, 40, 50];
+
+      const yieldValues = areaValues.map(a => (a / (spacing * spacing)) * yieldPerPlant);
+      const waterValues = areaValues.map(a => (a / (spacing * spacing)) * waterPerPlant);
+      const costValues = areaValues.map(a => (a / (spacing * spacing)) * costPerPlant);
+
+      if (chart) chart.destroy(); // remove previous chart
+
+      const ctx = document.getElementById("yieldChart").getContext("2d");
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: areaValues.map(a => a + " m²"),
+          datasets: [
+            {
+              label: "Yield per Area (kg)",
+              data: yieldValues,
+              borderColor: "#0c7c59",
+              backgroundColor: "rgba(12,124,89,0.2)",
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3
+            },
+            {
+              label: "Water Usage per Area (L)",
+              data: waterValues,
+              borderColor: "#f28c28",
+              backgroundColor: "rgba(242,140,40,0.2)",
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3
+            },
+            {
+              label: "Setup Cost per Area (R)",
+              data: costValues,
+              borderColor: "#d9534f",
+              backgroundColor: "rgba(217,83,79,0.2)",
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            title: { display: true, text: 'Garden Parameters vs Area' }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>

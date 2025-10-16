@@ -1,0 +1,102 @@
+<!doctype html>
+<title>Food Gardening — Home</title>
+<style>
+body {font-family: 'Poppins', sans-serif; margin: 0; background: #f3fff3; color: #1a2b1a;}
+header {background: linear-gradient(90deg, #5cb85c, #3d8b3d); color: white; padding: 20px; text-align: center;}
+nav {background: #f0f9f0; text-align: center; padding: 10px;}
+nav a {color: #3d8b3d; text-decoration: none; margin: 0 10px; font-weight: 600;}
+nav a:hover {text-decoration: underline;}
+section {max-width: 900px; margin: 40px auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+footer {background: #3d8b3d; color: white; text-align: center; padding: 20px; margin-top: 40px;}
+input[type=text], input[type=file] {padding: 10px; width: 100%; border-radius: 8px; border: 1px solid #ccc; margin: 10px 0;}
+button {background: #5cb85c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;}
+button:hover {background: #4cae4c;}
+img.preview {width: 200px; border-radius: 10px; margin-top: 10px;}
+</style>
+</head>
+<link rel="stylesheet" href="style.css">
+<body>
+    
+
+<header>
+<h1>Improving Food Security Through Food Gardening</h1>
+<p>Interactive Gardening Guide for Better Food Security</p>
+</header>
+  <nav class="navbar">
+  <h1>🌿 Sprout Pioneers</h1>
+  
+    <a href="index.html">Home</a>
+    <a href="Food Gardening  Home.html">Garden</a>
+    <a href="Calculator.html">calculator</a>
+    <a href="Fertilizer.html">Fertilizer</a>
+    <a href="Types of soil.html">Types of Soil</a>
+    <a href="Watering.html">Watering</a>
+    <a href="Seasons.html">season</a>
+    <a href="uploads.html">upload</a>
+</nav>
+
+
+
+<section>
+<h2>Welcome to the Food Gardening Project</h2>
+<p>Enter the type of plant you wish to grow or upload an image of the plant. This information will help us suggest the best watering method, fertilizer type, and soil type across different seasons.</p>
+
+
+<label for="plantName"><strong>Enter Plant Name:</strong></label>
+<input type="text" id="plantName" placeholder="e.g., Tomato, Lettuce, Spinach">
+
+
+<label for="plantImage"><strong>Upload Plant Image:</strong></label>
+<input type="file" id="plantImage" accept="image/*">
+<img id="preview" class="preview" style="display:none;" />
+
+
+<button id="savePlant">Save Plant</button>
+<p id="confirmation" style="color:green; font-weight:600;"></p>
+</section>
+
+
+<footer>
+<p>© 2025 Food Security Through Gardening | Built with HTML, CSS, and JavaScript</p>
+</footer>
+
+
+<script>
+const plantNameInput = document.getElementById('plantName');
+const plantImageInput = document.getElementById('plantImage');
+const preview = document.getElementById('preview');
+const confirmation = document.getElementById('confirmation');
+
+
+// Preview uploaded image
+plantImageInput.addEventListener('change', function() {
+const file = this.files[0];
+if (file) {
+const reader = new FileReader();
+reader.onload = function(e) {
+preview.src = e.target.result;
+preview.style.display = 'block';
+}
+reader.readAsDataURL(file);
+}
+});
+
+
+// Save plant info to localStorage
+document.getElementById('savePlant').addEventListener('click', function() {
+const plantName = plantNameInput.value.trim();
+if (!plantName && !plantImageInput.files.length) {
+alert('Please enter a plant name or upload an image.');
+return;
+}
+
+
+localStorage.setItem('plantName', plantName || 'Unknown Plant');
+if (preview.src) localStorage.setItem('plantImage', preview.src);
+
+
+confirmation.textContent = `Plant information saved! (${plantName || 'Image uploaded'})`;
+});
+</script>
+</body>
+</html>

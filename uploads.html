@@ -1,0 +1,47 @@
+
+<section style="background: linear-gradient(135deg, #d0f0c0, #a0e6a0); padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 40px auto; max-width: 700px;">
+  <h2 style="color: #2d6b2d;">Find the Best Growing Conditions for Your Plant</h2>
+  <p style="color: #1a2b1a; font-weight: 500;">Enter your plant name to get recommendations for watering, fertilizer, and soil. You can also learn more about your plant using our AI-powered guide.</p>
+  
+  <form id="plantForm" style="margin-top: 20px;">
+    <input type="text" id="plantInput" placeholder="e.g., tomato" required
+           style="padding: 10px; border-radius: 8px; border: 1px solid #3d8b3d; width: 60%; margin-bottom: 10px;">
+    <br>
+    <input type="number" id="gardenSizeInput" placeholder="Garden size (m²)" required min="1"
+           style="padding: 10px; border-radius: 8px; border: 1px solid #3d8b3d; width: 60%; margin-bottom: 10px;">
+    <br>
+    <button type="submit" style="background: #5cb85c; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: 600;">Submit</button>
+  </form>
+
+  <p style="margin-top: 15px; font-size: 0.95em;">
+    Learn more about your plant: 
+    <a href="https://www.google.com/search?q=AI+plant+guide" target="_blank" style="color: #1a2b1a; font-weight: bold; text-decoration: underline;">AI Plant Guide</a>
+  </p>
+</section>
+  <nav class="navbar">
+  <h1>🌿 Sprout Pioneers</h1>
+  
+    <a href="index.html">Home</a>
+    <a href="Food Gardening  Home.html">Garden</a>
+    <a href="Calculator.html">calculator</a>
+    <a href="Fertilizer.html">Fertilizer</a>
+    <a href="Types of soil.html">Types of Soil</a>
+    <a href="Watering.html">Watering</a>
+    <a href="Seasons.html">season</a>
+    <a href="uploads.html">upload</a>
+</nav>
+
+<script>
+// Redirect to seasons.html and pass plant name + garden size in URL
+document.getElementById('plantForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const plant = document.getElementById('plantInput').value.trim();
+  const gardenSize = document.getElementById('gardenSizeInput').value.trim();
+  if (plant && gardenSize > 0) {
+    // Encode info in URL query parameters
+    window.location.href = `seasons.html?plant=${encodeURIComponent(plant)}&size=${gardenSize}`;
+  } else {
+    alert("Please enter a valid plant name and garden size.");
+  }
+});
+</script>

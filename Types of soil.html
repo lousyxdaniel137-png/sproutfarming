@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Soil Types & Recommendations</title>
+<style>
+body {font-family: 'Poppins', sans-serif; margin: 0; background: #f3fff3; color: #1a2b1a;}
+header {background: linear-gradient(90deg, #5cb85c, #3d8b3d); color: white; padding: 20px; text-align: center;}
+nav {background: #f0f9f0; text-align: center; padding: 10px;}
+nav a {color: #3d8b3d; text-decoration: none; margin: 0 10px; font-weight: 600;}
+nav a:hover {text-decoration: underline;}
+section {max-width: 900px; margin: 40px auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+table {width: 100%; border-collapse: collapse; margin-top: 20px;}
+th, td {border: 1px solid #3d8b3d; padding: 10px; text-align: center;}
+th {background-color: #5cb85c; color: white;}
+ul {margin-top: 10px;}
+footer {background: #3d8b3d; color: white; text-align: center; padding: 20px; margin-top: 40px;}
+</style>
+</head>
+<body>
+  <nav class="navbar">
+  <h1>🌿 Sprout Pioneers</h1>
+  
+    <a href="index.html">Home</a>
+    <a href="Food Gardening  Home.html">Garden</a>
+    <a href="Calculator.html">calculator</a>
+    <a href="Fertilizer.html">Fertilizer</a>
+    <a href="Types of soil.html">Types of Soil</a>
+    <a href="Watering.html">Watering</a>
+    <a href="Seasons.html">season</a>
+    <a href="uploads.html">upload</a>
+</nav>
+
+<header>
+<h1>Soil Types & Recommendations</h1>
+<p id="plantHeader">Best soil for your garden</p>
+</header>
+
+
+
+<section>
+<h2>Common Soil Types</h2>
+<p>Different plants grow best in different soil types. The table below shows the main soil types and their characteristics.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Soil Type</th>
+      <th>Characteristics</th>
+      <th>Best For</th>
+    </tr>
+  </thead>
+  <tbody id="soilTableBody">
+    <!-- Rows generated dynamically -->
+  </tbody>
+</table>
+
+<h3>Recommended Soil for Your Plant</h3>
+<p id="recommendation"></p>
+
+<h3>Tips for Improving Soil</h3>
+<ul>
+  <li>Add compost or manure to improve fertility.</li>
+  <li>Use mulch to retain moisture.</li>
+  <li>Adjust pH for specific plants (lime for acidic, sulfur for alkaline).</li>
+  <li>Test soil for nutrients before planting.</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 Food Security Through Gardening | Built with HTML, CSS, and JavaScript</p>
+</footer>
+
+<script>
+// Read plant name and garden size from URL
+const urlParams = new URLSearchParams(window.location.search);
+const plant = urlParams.get('plant') || 'Your Plant';
+const gardenSize = parseFloat(urlParams.get('size')) || 100;
+
+// Update header dynamically
+document.getElementById('plantHeader').textContent = `Best soil recommendations for ${plant} (${gardenSize} m²)`;
+
+// Soil types data
+const soilTypes = [
+  {type: "Sandy Soil", characteristics: "Drains quickly, low nutrients", bestFor: ["Carrot", "Radish"]},
+  {type: "Clay Soil", characteristics: "Retains water, nutrient-rich, heavy", bestFor: ["Spinach", "Cabbage"]},
+  {type: "Loamy Soil", characteristics: "Balanced drainage and nutrients", bestFor: ["Tomato", "Pepper", "Most Vegetables"]},
+  {type: "Silt Soil", characteristics: "Smooth, retains moisture, nutrient-rich", bestFor: ["Lettuce", "Leafy Greens"]},
+  {type: "Peaty Soil", characteristics: "High organic matter, acidic", bestFor: ["Blueberry", "Lettuce"]},
+  {type: "Chalky Soil", characteristics: "Alkaline, may lack nutrients", bestFor: ["Mediterranean Herbs", "Some Vegetables"]}
+];
+
+// Populate soil table
+const tableBody = document.getElementById('soilTableBody');
+soilTypes.forEach(soil => {
+  const row = document.createElement('tr');
+  row.innerHTML = `<td>${soil.type}</td><td>${soil.characteristics}</td><td>${soil.bestFor.join(", ")}</td>`;
+  tableBody.appendChild(row);
+});
+
+// Recommend soil for plant
+let recommended = soilTypes.find(soil => 
+  soil.bestFor.some(p => p.toLowerCase() === plant.toLowerCase())
+);
+
+document.getElementById('recommendation').textContent = recommended 
+  ? `The best soil type for ${plant} is ${recommended.type}.`
+  : `No specific soil recommendation found for ${plant}. Use loamy soil for general planting.`;
+</script>
+
+</body>
+</html>
